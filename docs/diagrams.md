@@ -7,35 +7,23 @@ All diagrams use [Mermaid](https://mermaid.js.org/), which GitHub renders native
 ## System architecture
 
 ```mermaid
-flowchart TB
-    Customer["Customer"]
+flowchart LR
+    Customer(["Customer"])
+    Cloud["WhatsApp Cloud API"]
+    WH["whatsapp-webhook"]
+    DB[("conversations / messages")]
+    Cron(["pg_cron"])
+    PB["process-buffer"]
+    Gemini["Gemini agent"]
 
-    subgraph Meta
-        Cloud["WhatsApp Cloud API"]
-    end
-
-    subgraph Supabase
-        WH["whatsapp-webhook<br/>(Edge Function)"]
-        PB["process-buffer<br/>(Edge Function)"]
-        Cron["pg_cron"]
-        Claim["claim_buffered_conversations()<br/>FOR UPDATE SKIP LOCKED"]
-        DB[("conversations / messages")]
-    end
-
-    subgraph Google
-        Gemini["Gemini (model fallback)"]
-    end
-
-    Customer -->|messages| Cloud
+    Customer -->|message| Cloud
     Cloud -->|webhook| WH
-    WH -->|store msg + set buffer_until| DB
-    WH -->|typing + read receipt| Cloud
-    Cron -->|interval| PB
-    PB --> Claim
-    Claim -->|due, unlocked rows| DB
-    PB -->|last ~10 messages| Gemini
-    Gemini -->|reply or (ESCALAR)| PB
-    PB -->|send reply| Cloud
+    WH -->|"store + open buffer window"| DB
+    Cron -->|"every few seconds"| PB
+    PB -->|"claim due rows, SKIP LOCKED"| DB
+    PB -->|"batched history"| Gemini
+    Gemini -->|"reply or ESCALAR"| PB
+    PB -->|send| Cloud
     Cloud -->|deliver| Customer
 ```
 
@@ -81,9 +69,9 @@ How a conversation moves between bot and human.
 ```mermaid
 stateDiagram-v2
     [*] --> Bot: bot_global_enabled && bot_enabled
-    Bot --> Human: model returns (ESCALAR)
+    Bot --> Human: model returns ESCALAR
     Bot --> Human: LLM error / empty
-    Bot --> Human: staff reply (Coexistence)
+    Bot --> Human: staff reply via Coexistence
     Human --> Bot: re-enable conversation
     Bot --> Off: global kill switch off
     Off --> Bot: launch / re-enable
@@ -95,15 +83,9 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    subgraph Ingest
-        WH["whatsapp-webhook<br/>• resolve tenant by phone_number_id<br/>• dedupe by wamid<br/>• store message<br/>• open buffer window<br/>• log delivery statuses"]
-    end
-    subgraph Flush
-        PB["process-buffer<br/>• claim due conversations<br/>• call Gemini (fallback)<br/>• send reply<br/>• escalate on failure"]
-    end
-    subgraph Agent
-        G["Gemini<br/>• per-tenant system prompt<br/>• replay recent history<br/>• reply or (ESCALAR)"]
-    end
+    WH["whatsapp-webhook<br/>• resolve tenant by phone_number_id<br/>• dedupe by wamid<br/>• store message<br/>• open buffer window<br/>• log delivery statuses"]
+    PB["process-buffer<br/>• claim due conversations<br/>• call Gemini with fallback<br/>• send reply<br/>• escalate on failure"]
+    G["Gemini<br/>• per-tenant system prompt<br/>• replay recent history<br/>• reply or ESCALAR"]
 
     WH --> PB --> G
 ```
