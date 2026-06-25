@@ -34,7 +34,7 @@ flowchart TB
     PB --> Claim
     Claim -->|due, unlocked rows| DB
     PB -->|last ~10 messages| Gemini
-    Gemini -->|reply or [ESCALAR]| PB
+    Gemini -->|reply or (ESCALAR)| PB
     PB -->|send reply| Cloud
     Cloud -->|deliver| Customer
 ```
@@ -81,7 +81,7 @@ How a conversation moves between bot and human.
 ```mermaid
 stateDiagram-v2
     [*] --> Bot: bot_global_enabled && bot_enabled
-    Bot --> Human: model returns [ESCALAR]
+    Bot --> Human: model returns (ESCALAR)
     Bot --> Human: LLM error / empty
     Bot --> Human: staff reply (Coexistence)
     Human --> Bot: re-enable conversation
@@ -102,7 +102,7 @@ flowchart LR
         PB["process-buffer<br/>• claim due conversations<br/>• call Gemini (fallback)<br/>• send reply<br/>• escalate on failure"]
     end
     subgraph Agent
-        G["Gemini<br/>• per-tenant system prompt<br/>• replay recent history<br/>• reply or [ESCALAR]"]
+        G["Gemini<br/>• per-tenant system prompt<br/>• replay recent history<br/>• reply or (ESCALAR)"]
     end
 
     WH --> PB --> G
