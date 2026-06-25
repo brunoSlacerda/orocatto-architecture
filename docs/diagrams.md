@@ -68,13 +68,11 @@ How a conversation moves between bot and human.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Bot: bot_global_enabled && bot_enabled
-    Bot --> Human: model returns ESCALAR
-    Bot --> Human: LLM error / empty
-    Bot --> Human: staff reply via Coexistence
-    Human --> Bot: re-enable conversation
-    Bot --> Off: global kill switch off
-    Off --> Bot: launch / re-enable
+    [*] --> Bot
+    Bot --> Human: ESCALAR, error, or staff reply
+    Human --> Bot: re-enabled
+    Bot --> Off: kill switch off
+    Off --> Bot: launch
 ```
 
 ---
@@ -83,9 +81,9 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    WH["whatsapp-webhook<br/>• resolve tenant by phone_number_id<br/>• dedupe by wamid<br/>• store message<br/>• open buffer window<br/>• log delivery statuses"]
-    PB["process-buffer<br/>• claim due conversations<br/>• call Gemini with fallback<br/>• send reply<br/>• escalate on failure"]
-    G["Gemini<br/>• per-tenant system prompt<br/>• replay recent history<br/>• reply or ESCALAR"]
+    WH["whatsapp-webhook<br/>- resolve tenant by phone_number_id<br/>- dedupe by wamid<br/>- store message<br/>- open buffer window<br/>- log delivery statuses"]
+    PB["process-buffer<br/>- claim due conversations<br/>- call Gemini with fallback<br/>- send reply<br/>- escalate on failure"]
+    G["Gemini<br/>- per-tenant system prompt<br/>- replay recent history<br/>- reply or ESCALAR"]
 
     WH --> PB --> G
 ```
